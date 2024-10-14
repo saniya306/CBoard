@@ -1,0 +1,923 @@
+<html><head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>College Bulletin Board</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Caveat&display=swap');
+    
+  
+    body, html {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      font-family: Arial, sans-serif;
+      background-color: #f0f0f0;
+      overflow: hidden;
+    }
+  
+    .board-container {
+      width: 90%;
+      height: 90%;
+      margin: 2% auto;
+      border: 20px solid #4a4a4a;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      position: relative;
+      overflow: hidden;
+    }
+  
+    .board {
+      width: 150%;
+      height: 150%;
+      background-color: #e0e0e0;
+      position: absolute;
+      top: -25%;
+      left: -25%;
+      cursor: move;
+      background-image: url('data:image/svg+xml;utf8,<svg width="100" height="100" xmlns="http://www.w3.org/2000/svg"><rect width="100%" height="100%" fill="%23e0e0e0"/><path d="M0 0L100 100M100 0L0 100" stroke="%23d0d0d0" stroke-width="1"/></svg>');
+      background-size: 20px 20px;
+    }
+  
+    .sticky-note {
+      position: absolute;
+      min-width: 150px;
+      max-width: 300px;
+      padding: 20px;
+      font-family: 'Caveat', cursive;
+      font-size: 18px;
+      box-shadow: 5px 5px 15px rgba(0,0,0,0.2);
+      cursor: move;
+      transition: all 0.3s ease;
+      user-select: none;
+      transform: rotate(-2deg);
+      border-radius: 2px;
+    }
+  
+    .sticky-note::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      right: 0;
+      border-width: 0 16px 16px 0;
+      border-style: solid;
+      border-color: rgba(0,0,0,0.1) #e0e0e0;
+      box-shadow: -1px 1px 1px rgba(0,0,0,0.1);
+    }
+  
+    .sticky-note::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      right: 0;
+      width: 40px;
+      height: 40px;
+      background: linear-gradient(135deg, transparent 50%, rgba(0,0,0,0.1) 50%);
+      border-radius: 0 0 2px 0;
+    }
+  
+    .sticky-note:hover {
+      transform: scale(1.05) rotate(0deg);
+      box-shadow: 8px 8px 20px rgba(0,0,0,0.3);
+      z-index: 1000 !important;
+    }
+  
+    .sticky-note h3 {
+      margin-top: 0;
+      font-size: 22px;
+      word-wrap: break-word;
+      text-shadow: 1px 1px 1px rgba(255,255,255,0.5);
+    }
+  
+    .sticky-note p {
+      margin-bottom: 0;
+      word-wrap: break-word;
+      text-shadow: 1px 1px 1px rgba(255,255,255,0.5);
+    }
+
+    .sticky-note img {
+    max-width: 100%;
+    max-height: 200px;
+    object-fit: contain;
+    margin-top: 10px;
+  }
+
+    #noteImage {
+    margin: 10px 0;
+    }
+  
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 1002;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0,0,0,0.4);
+      backdrop-filter: blur(5px);
+    }
+  
+    .modal-content {
+      background-color: rgba(255, 255, 255, 0.8);
+      backdrop-filter: blur(10px);
+      margin: 15% auto;
+      padding: 20px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      width: 80%;
+      max-width: 500px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+      border-radius: 10px;
+      animation: modalAppear 0.3s ease-out;
+    }
+  
+    @keyframes modalAppear {
+      from {
+        opacity: 0;
+        transform: translateY(-50px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+  
+    .close {
+      color: #aaa;
+      float: right;
+      font-size: 28px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: color 0.3s ease;
+    }
+  
+    .close:hover,
+    .close:focus {
+      color: #000;
+    }
+  
+    input, textarea {
+      width: 100%;
+      padding: 10px;
+      margin: 10px 0;
+      box-sizing: border-box;
+      font-family: 'Caveat', cursive;
+      font-size: 18px;
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      border-radius: 5px;
+      transition: border-color 0.3s ease;
+      background-color: rgba(255, 255, 255, 0.5);
+    }
+  
+    input:focus, textarea:focus {
+      outline: none;
+      border-color: #4CAF50;
+      background-color: rgba(255, 255, 255, 0.8);
+    }
+  
+    button[type="submit"] {
+      background-color: #4CAF50;
+      color: white;
+      padding: 10px 20px;
+      border: none;
+      cursor: pointer;
+      font-size: 16px;
+      border-radius: 5px;
+      transition: all 0.3s ease;
+    }
+  
+    button[type="submit"]:hover {
+      background-color: #45a049;
+      transform: translateY(-2px);
+      box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    }
+  
+    .context-menu {
+      display: none;
+      position: absolute;
+      background-color: #f9f9f9;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+      z-index: 1003;
+    }
+  
+    .context-menu ul {
+      list-style-type: none;
+      padding: 0;
+      margin: 0;
+    }
+  
+    .context-menu ul li {
+      padding: 10px 20px;
+      cursor: pointer;
+      transition: background-color 0.3s;
+    }
+  
+    .context-menu ul li:hover {
+      background-color: #e0e0e0;
+    }
+  
+    .password-container {
+      position: relative;
+      margin-bottom: 10px;
+    }
+  
+    .password-info {
+      position: absolute;
+      right: -25px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 20px;
+      height: 20px;
+      background-color: #4CAF50;
+      color: white;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: help;
+    }
+  
+    .password-info::after {
+      content: "i";
+      font-style: italic;
+      font-weight: bold;
+    }
+  
+    .password-info:hover::before {
+      content: "Set a password to protect your note. You'll need it to delete the note later.";
+      position: absolute;
+      background-color: #333;
+      color: #fff;
+      padding: 5px 10px;
+      border-radius: 5px;
+      font-size: 14px;
+      width: 200px;
+      top: 25px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 1;
+    }
+  
+    .password-modal {
+      display: none;
+      position: fixed;
+      z-index: 1004;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0,0,0,0.4);
+      backdrop-filter: blur(5px);
+    }
+  
+    .password-modal-content {
+      background-color: rgba(255, 255, 255, 0.8);
+      backdrop-filter: blur(10px);
+      margin: 15% auto;
+      padding: 20px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      width: 300px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+      border-radius: 10px;
+      text-align: center;
+    }
+  
+    .password-input {
+      width: 100%;
+      padding: 10px;
+      margin: 10px 0;
+      box-sizing: border-box;
+      font-family: Arial, sans-serif;
+      font-size: 16px;
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      border-radius: 5px;
+      background-color: rgba(255, 255, 255, 0.5);
+    }
+  
+    .password-submit {
+      background-color: #4CAF50;
+      color: white;
+      padding: 10px 20px;
+      border: none;
+      cursor: pointer;
+      font-size: 16px;
+      border-radius: 5px;
+      transition: all 0.3s ease;
+    }
+  
+    .password-submit:hover {
+      background-color: #45a049;
+    }
+  
+    #errorMessage {
+      color: #ff0000;
+      margin-top: 10px;
+      font-weight: bold;
+    }
+  
+    .color-picker {
+      display: flex;
+      justify-content: space-between;
+      margin: 10px 0;
+    }
+  
+    .color-option {
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      cursor: pointer;
+      transition: transform 0.3s ease;
+    }
+  
+    .color-option:hover {
+      transform: scale(1.1);
+    }
+  
+    .color-option.selected {
+      border: 2px solid #000;
+      box-shadow: 0 0 5px rgba(0,0,0,0.5);
+    }
+  
+    .pin-up {
+      position: absolute;
+      top: -10px;
+      left: 10px;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+      z-index: 1;
+    }
+  
+    .note-info {
+      font-size: 12px;
+      color: #666;
+      margin-top: 5px;
+    }
+
+    button[type="logout-button"] {
+      background-color: #437699;
+      color: white;
+      size: 0.1px;
+      padding: 10px 20px;
+      border: none;
+      cursor: pointer;
+      font-size: 16px;
+      border-radius: 10px;
+      transition: all 0.3s ease;
+    }
+
+    .logout {
+      position: absolute;
+      align-self: center;
+    }
+
+  </style>
+  </head>
+  <body>
+    <div class= "logout">
+    <a href="index.html"><button type="logout-button">Log Out</button></a>
+  </div>
+    <div class="board-container">
+      <div class="board" id="board"></div>
+    </div>
+  
+    <div id="noteModal" class="modal">
+      <div class="modal-content">
+        <span class="close">&times;</span>
+        <h2>Add a New Note</h2>
+        <form id="noteForm">
+          <input type="text" id="noteName" placeholder="Your Name" maxlength="50" required>
+          <input type="text" id="noteHeadline" placeholder="Headline" maxlength="50" required>
+          <textarea id="noteContent" placeholder="Content" maxlength="1000" required></textarea>
+          <div class="password-container">
+            <input type="password" id="notePassword" placeholder="Password (optional)">
+            <div class="password-info" title="Set a password to protect your note. You'll need it to delete the note later."></div>
+          </div>
+          <input type="file" id="noteImage" accept="image/*">
+          <div class="color-picker" id="colorPicker"></div>
+          <button type="submit">Add Note</button>
+        </form>
+        <p id="errorMessage"></p>
+      </div>
+    </div>
+
+  
+    <div id="contextMenu" class="context-menu">
+      <ul>
+        <li id="noteInfo"></li>
+        <li id="deleteNote">Delete Note</li>
+        <li id="addNoteHere">Add Note Here</li>
+      </ul>
+    </div>
+  
+    <div id="passwordModal" class="password-modal">
+      <div class="password-modal-content">
+        <h3>Enter Password</h3>
+        <input type="password" id="passwordInput" class="password-input" placeholder="Enter password">
+        <button id="passwordSubmit" class="password-submit">Submit</button>
+        <p id="passwordErrorMessage"></p>
+      </div>
+    </div>
+  
+    
+    <script type="module">
+      //Script
+
+
+      // Import the functions you need from the SDKs you need
+      import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
+      import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-analytics.js";
+      import { getDatabase, ref, set, get, remove, update, child } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-database.js";
+      import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
+    
+      // Your web app's Firebase configuration
+      const firebaseConfig = {
+        apiKey: "AIzaSyCJwXMLJZB2yzg4jcmPrvELSfxkJsTjDUY",
+        authDomain: "bulletin-notes-board.firebaseapp.com",
+        databaseURL: "https://bulletin-notes-board-default-rtdb.firebaseio.com",
+        projectId: "bulletin-notes-board",
+        storageBucket: "bulletin-notes-board.appspot.com",
+        messagingSenderId: "607227548244",
+        appId: "1:607227548244:web:a5aab2871b989e6c0113c1",
+        measurementId: "G-EV2R2SC5V5"
+      };
+    
+      // Initialize Firebase
+      const app = initializeApp(firebaseConfig);
+      const analytics = getAnalytics(app);
+      const database = getDatabase(app);
+      const auth = getAuth();
+    
+      const boardContainer = document.querySelector('.board-container');
+      const board = document.getElementById('board');
+      const modal = document.getElementById('noteModal');
+      const closeBtn = document.getElementsByClassName('close')[0];
+      const noteForm = document.getElementById('noteForm');
+      const contextMenu = document.getElementById('contextMenu');
+      const deleteNoteOption = document.getElementById('deleteNote');
+      const addNoteHereOption = document.getElementById('addNoteHere');
+      const passwordModal = document.getElementById('passwordModal');
+      const passwordInput = document.getElementById('passwordInput');
+      const passwordSubmit = document.getElementById('passwordSubmit');
+      const errorMessage = document.getElementById('errorMessage');
+      const passwordErrorMessage = document.getElementById('passwordErrorMessage');
+      const colorPicker = document.getElementById('colorPicker');
+      const noteInfo = document.getElementById('noteInfo');
+    
+      const colors = [
+        'hsl(60, 70%, 80%)', // Light Yellow
+        'hsl(30, 70%, 80%)', // Light Orange
+        'hsl(0, 70%, 80%)', // Light Red
+        'hsl(120, 70%, 80%)', // Light Green
+        'hsl(180, 70%, 80%)', // Light Cyan
+        'hsl(240, 70%, 80%)', // Light Blue
+        'hsl(300, 70%, 80%)'  // Light Purple
+      ];
+    
+      const pinColors = [
+        '#ff4444', // Red
+        '#33b5e5', // Blue
+        '#aa66cc', // Purple
+        '#99cc00', // Green
+        '#ffbb33', // Yellow
+        '#ff8800', // Orange
+        '#00c851'  // Teal
+      ];
+    
+      let selectedColor = colors[0];
+    
+      // Create color picker options
+      colors.forEach((color, index) => {
+        const colorOption = document.createElement('div');
+        colorOption.className = 'color-option' + (index === 0 ? ' selected' : '');
+        colorOption.style.backgroundColor = color;
+        colorOption.addEventListener('click', () => {
+          document.querySelectorAll('.color-option').forEach(opt => opt.classList.remove('selected'));
+          colorOption.classList.add('selected');
+          selectedColor = color;
+        });
+        colorPicker.appendChild(colorOption);
+      });
+    
+      let zIndex = 1;
+      let contextMenuTarget = null;
+
+      function uploadImageToImgBB(imageFile) {
+      return new Promise((resolve, reject) => {
+        const formData = new FormData();
+        formData.append('image', imageFile);
+
+        fetch('https://api.imgbb.com/1/upload?key=f9d9baafd94eb387ee27da9b39a066ee', {
+          method: 'POST',
+          body: formData
+        })
+        .then(response => response.json())
+        .then(result => {
+          if (result.data && result.data.url) {
+            resolve(result.data.url);
+          } else {
+            reject('Failed to upload image');
+          }
+        })
+        .catch(error => reject(error));
+      });
+    }
+    
+    function createNote(headline, content, left, top, password, color, name, creationDate = new Date().toLocaleString(), imageUrl = null, noteId = null) {
+    const note = document.createElement('div');
+    note.className = 'sticky-note';
+    note.style.backgroundColor = color;
+    note.style.left = left + 'px';
+    note.style.top = top + 'px';
+    note.style.zIndex = zIndex++;
+    note.style.transform = `rotate(${Math.random() * 6 - 3}deg)`;
+    const randomPinColor = pinColors[Math.floor(Math.random() * pinColors.length)];
+    note.innerHTML = `
+        <div class="pin-up" style="background-color: ${randomPinColor};"></div>
+        <h3>${headline}</h3>
+        <p>${content}</p>
+        ${imageUrl ? `<img src="${imageUrl}" alt="Note image">` : ''}
+        <p class="note-info">Created by: ${name}</p>
+    `;
+    note.dataset.password = password;
+    note.dataset.name = name;
+    note.dataset.creationDate = creationDate;
+    note.dataset.imageUrl = imageUrl;
+    note.dataset.noteId = noteId ? noteId : Date.now().toString(); // Set noteId as data attribute
+
+    onAuthStateChanged(auth, (user)=> {
+        if (user) {
+          const uid = user.uid;
+        // Save note to Firebase if no noteId is provided
+        if (!noteId) {
+            noteId = note.dataset.noteId;
+            set(ref(database, `users/${uid}/notes/${noteId}`), {
+                headline,
+                content,
+                left,
+                top,
+                password,
+                color,
+                name,
+                creationDate,
+                imageUrl // Store the Base64 image data if provided
+            });
+        }
+      }
+    });
+
+    
+    board.appendChild(note);
+    
+        let isDragging = false;
+        let startX, startY;
+
+        note.addEventListener('mousedown', startDragging);
+        document.addEventListener('mousemove', drag);
+        document.addEventListener('mouseup', stopDragging);
+
+        note.addEventListener('touchstart', startDragging);
+        document.addEventListener('touchmove', drag);
+        document.addEventListener('touchend', stopDragging);
+
+        note.addEventListener('contextmenu', showNoteContextMenu);
+
+        function startDragging(e) {
+            e.stopPropagation();
+            isDragging = true;
+
+            // Calculate the initial offset when the drag starts
+            startX = (e.clientX || e.touches[0].clientX) - note.offsetLeft;
+            startY = (e.clientY || e.touches[0].clientY) - note.offsetTop;
+
+            note.style.zIndex = zIndex++;
+            note.style.transition = 'none';
+            note.style.transform = 'scale(1.05) rotate(0deg)';
+            note.style.boxShadow = '8px 8px 20px rgba(0,0,0,0.3)';
+        }
+
+        function drag(e) {
+            if (!isDragging) return;
+            e.preventDefault();
+
+            const clientX = e.clientX || e.touches[0].clientX;
+            const clientY = e.clientY || e.touches[0].clientY;
+
+            const newLeft = clientX - startX;
+            const newTop = clientY - startY;
+
+            const maxX = board.clientWidth - note.offsetWidth;
+            const maxY = board.clientHeight - note.offsetHeight;
+
+            note.style.left = Math.max(0, Math.min(newLeft, maxX)) + 'px';
+            note.style.top = Math.max(0, Math.min(newTop, maxY)) + 'px';
+        }
+
+        function stopDragging() {
+            if (isDragging) {
+                isDragging = false;
+                note.style.transition = 'all 0.3s ease';
+                note.style.transform = `rotate(${Math.random() * 6 - 3}deg)`;
+                note.style.boxShadow = '5px 5px 15px rgba(0,0,0,0.2)';
+
+                // Update the note's position in Firebase
+                const left = parseInt(note.style.left, 10);
+                const top = parseInt(note.style.top, 10);
+
+                // Update the position in Firebase
+                onAuthStateChanged(auth, (user)=> {
+            if (user) {
+              const uid = user.uid;
+              update(ref(database, `users/${uid}/notes/${noteId}`), {
+                    left: left,
+                    top: top
+                });
+              }
+            });
+            }
+        }
+
+            // Board dragging functionality
+        let isBoardDragging = false;
+        let boardStartX, boardStartY;
+
+        board.addEventListener('mousedown', startBoardDrag);
+        document.addEventListener('mousemove', dragBoard);
+        document.addEventListener('mouseup', stopBoardDrag);
+
+        function startBoardDrag(e) {
+          if (e.target === board) {
+            isBoardDragging = true;
+            boardStartX = e.clientX - board.offsetLeft;
+            boardStartY = e.clientY - board.offsetTop;
+            board.style.cursor = 'grabbing';
+          }
+        }
+
+        function dragBoard(e) {
+          if (!isBoardDragging) return;
+          e.preventDefault();
+
+          const newLeft = e.clientX - boardStartX;
+          const newTop = e.clientY - boardStartY;
+
+          const maxX = boardContainer.clientWidth - board.clientWidth;
+          const maxY = boardContainer.clientHeight - board.clientHeight;
+
+          board.style.left = Math.max(maxX, Math.min(newLeft, 0)) + 'px';
+          board.style.top = Math.max(maxY, Math.min(newTop, 0)) + 'px';
+        }
+
+        function stopBoardDrag() {
+          isBoardDragging = false;
+          board.style.cursor = 'move';
+        }
+
+    
+        function showNoteContextMenu(e) {
+          e.preventDefault();
+          contextMenu.style.display = 'block';
+          contextMenu.style.left = (e.clientX - board.offsetLeft) + 'px';
+          contextMenu.style.top = (e.clientY - board.offsetTop) + 'px';
+          contextMenuTarget = e.target.closest('.sticky-note');
+          
+          if (contextMenuTarget) {
+            const noteId = contextMenuTarget.dataset.noteId; // Retrieve the noteId from the target note
+            deleteNoteOption.style.display = 'block';
+            addNoteHereOption.style.display = 'none';
+            noteInfo.textContent = `Created by: ${contextMenuTarget.dataset.name} Date: ${contextMenuTarget.dataset.creationDate}`;
+            noteInfo.style.display = 'block';
+            
+            deleteNoteOption.onclick = () => {
+              if (contextMenuTarget.dataset.password) {
+                showPasswordModal(contextMenuTarget, noteId);
+              } else {
+                board.removeChild(contextMenuTarget); // Remove note from the board
+                console.log('Attempting to delete note with ID:', noteId);
+                onAuthStateChanged(auth, (user)=> {
+                  if (user) {
+                    const uid = user.uid;
+                      remove(ref(database, 'users/${uid}/notes/${noteId}'));
+                    }
+                  });
+              }
+              contextMenu.style.display = 'none';
+            };
+          }
+        }
+      }
+
+    
+      function showPasswordModal(note, noteId) {
+        passwordModal.style.display = 'block';
+        passwordInput.value = '';
+        passwordErrorMessage.textContent = '';
+        passwordInput.focus();
+        passwordSubmit.onclick = () => {
+          if (passwordInput.value === note.dataset.password) {
+            board.removeChild(note);
+            passwordModal.style.display = 'none';
+            onAuthStateChanged(auth, (user)=> {
+            if (user) {
+              const uid = user.uid;
+                remove(ref(database, 'users/${uid}/notes/${noteId}'));
+              }
+            });
+          } else {
+            passwordErrorMessage.textContent = "Incorrect password. Please try again.";
+            passwordInput.value = '';
+          }
+        };
+      }
+    
+      // Variables to keep track of context menu position
+      let contextMenuX = 0;
+      let contextMenuY = 0;
+
+      // Hide the context menu when clicking outside of it
+      document.addEventListener('click', function(e) {
+        if (!e.target.closest('.context-menu')) {
+          contextMenu.style.display = 'none';
+          passwordModal.style.display = 'none';
+        }
+      });
+
+    // Handle the right-click on the board to show the context menu
+    board.addEventListener('contextmenu', function(e) {
+        if (e.target === board) {
+          e.preventDefault();
+
+          // Calculate the position of the click relative to the board
+          const rect = board.getBoundingClientRect();
+          const x = e.clientX - rect.left;
+          const y = e.clientY - rect.top;
+
+          // Log for debugging
+          console.log(`Context Menu Position - x: ${x}, y: ${y}`);
+
+          // Set the position of the context menu
+          contextMenu.style.display = 'block';
+          contextMenu.style.left = `${x}px`;
+          contextMenu.style.top = `${y}px`;
+
+          // Configure context menu options
+          contextMenuTarget = board;
+          deleteNoteOption.style.display = 'none';
+          addNoteHereOption.style.display = 'block';
+          noteInfo.style.display = 'none';
+
+          // Set up the click event for the 'Add Note Here' option
+          addNoteHereOption.onclick = () => {
+            openModal(x, y);
+            contextMenu.style.display = 'none';
+          };
+        }
+      });
+
+
+      // Handle closing the modal
+      closeBtn.onclick = function() {
+        modal.style.display = 'none';
+      };
+
+      // Hide the modal if clicking outside of it
+      window.onclick = function(event) {
+        if (event.target === modal) {
+          modal.style.display = 'none';
+        }
+      };
+
+
+    
+      function openModal(x, y) {
+        modal.style.display = 'block';
+        noteForm.onsubmit = function(e) {
+      e.preventDefault();
+      const name = document.getElementById('noteName').value;
+      const headline = document.getElementById('noteHeadline').value;
+      const content = document.getElementById('noteContent').value;
+      const password = document.getElementById('notePassword').value;
+      const imageFile = document.getElementById('noteImage').files[0];
+
+      // if (containsBadLanguage(headline) || containsBadLanguage(content)) {
+      //   errorMessage.textContent = 'Please use appropriate language.';
+      //   return;
+      // }
+
+      let left, top;
+          if (contextMenuTarget === board) {
+            left = parseInt(contextMenu.style.left) - board.offsetLeft;
+            top = parseInt(contextMenu.style.top) - board.offsetTop;
+          } else {
+            left = Math.random() * (board.offsetWidth - 200);
+            top = Math.random() * (board.offsetHeight - 200);
+          }
+
+              if (imageFile) {
+            uploadImageToImgBB(imageFile)
+              .then(imageUrl => {
+                createNote(headline, content, left, top, password, selectedColor, name, null, imageUrl);
+                modal.style.display = "none";
+                noteForm.reset();
+                contextMenuTarget = null;
+              })
+              .catch(error => {
+                console.error('Error uploading image:', error);
+                errorMessage.textContent = 'Failed to upload image. Please try again.';
+              });
+          } else {
+            createNote(headline, content, left, top, password, selectedColor, name);
+            modal.style.display = "none";
+            noteForm.reset();
+            contextMenuTarget = null;
+          }
+        };
+      }
+
+      function containsBadLanguage(text) {
+    const badWords = new Set([
+        'fuck', 'shit', 'ass', 'bitch', 'damn', 'crap', 'piss', 
+        'dick', 'cock', 'pussy', 'asshole', 'bastard', 'slut', 
+        'douche', 'cunt', 'motherfucker', 'fag', 'faggot', 'twat',
+        'tits', 'wanker', 'wank', 'prick', 'piss', 'bastard', 
+        'smegma', 'cocksucker', 'nutjob', 'retard', 'skank', 'ho',
+        'minger', 'tosser', 'bollocks', 'gobshite', 'shag', 'pikey',
+        'scrote', 'bellend', 'douchebag', 'jizz', 'spunk', 'clit',
+        'buttplug', 'fisting', 'tramp', 'whore', 'cunt', 'gash', 
+        'hymen', 'semen', 'syphilis', 'turd', 'cum', 'bukkake', 
+        'blowjob', 'handjob', 'sucker', 'titty', 'tittyfuck',
+        'dirty', 'bimbo', 'pimp', 'ho', 'prostitute', 
+        'escort', 'fistfuck', 'bastard', 'cockhead', 'dildo', 
+        'douchebag', 'shithead', 'asswipe', 'cocksucking', 'shitfaced',
+        'assclown', 'dumbass', 'fuckface', 'shitbag', 'shitstain',
+        'fucker', 'fuckwit', 'fucktard', 'sodomite', 'kike', 'chink',
+        'gook', 'raghead', 'spic', 'wetback', 'nigger', 'dyke',
+        'tranny', 'hermaphrodite', 'bastard', 'jackass', 'cumbucket',
+        'cuntface', 'asshat', 'asshole', 'buttface', 'dickhead',
+        'prickhead', 'cockface', 'motherfucking', 'bitchass', 
+        'faggoty', 'coont', 'shitlord', 'spermbag', 'shitcunt',
+        'scumbag', 'whore', 'slutbag', 'pussypuff', 'faggotass',
+        'buttplug', 'analbead', 'douchewaffle', 'fucktard', 'shitweasel',
+        'fucknugget', 'dicknugget', 'buttfucker', 'assfucker', 'mothafucka',
+        'assmonkey', 'dickbrain', 'fuckknuckle', 'cuntmuncher', 'wankstain'
+    ]);
+
+      return badWords.some(word => text.toLowerCase().includes(word));
+    }
+    
+    window.addEventListener('load', () => {
+      setTimeout(() => {
+    // Wait for Firebase auth to initialize
+    onAuthStateChanged(auth, (user) => {
+        if (user) {
+            const notesRef = ref(database, `users/${user.uid}/notes`);
+            get(notesRef).then((snapshot) => {
+                if (snapshot.exists()) {
+                    const notes = snapshot.val();
+                    for (const noteId in notes) {
+                        const { headline, content, left, top, password, color, name, creationDate, imageUrl } = notes[noteId];
+                        createNote(headline, content, left, top, password, color, name, creationDate, imageUrl, noteId);
+                    }
+                } else {
+                    console.log("No notes found");
+                }
+            }).catch((error) => {
+                console.error("Error fetching notes:", error);
+                // Handle error, or create default note
+                // createNote('Welcome!', 'This is the college bulletin board. Right-click on the board to add your own notes!', 50, 50, '', colors[0], 'Admin');
+            });
+        } else {
+            console.log("User is not authenticated");
+            // Add a delay before redirecting
+                window.location.href = "index.html";
+        }
+    }).catch((error) => {
+        console.error("Error during authentication check:", error);
+        // Add a delay before redirecting in case of error
+            window.location.href = "index.html";
+    });
+  }, 2000);
+});
+
+    const logoutButton = document.getElementById('logout-button');
+    logoutButton.addEventListener('click', logoutUser);
+
+    // Function to handle user logout
+    function logoutUser() {
+      auth.signOut()
+        .then(() => {
+          // Sign-out successful.
+          console.log('User signed out successfully.');
+          // Redirect to the login page or any other desired location
+          window.location.href = 'index.html'; // Replace with your login page URL
+        })
+        .catch((error) => {
+          // An error happened.
+          console.error('Error signing out:', error);
+        });
+    }
+
+    </script>
+  </body>
+  </html>
